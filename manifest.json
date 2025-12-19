@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "metadata": {
+    "appmode": "shiny",
+    "primary_rmd": null,
+    "primary_html": null,
+    "content_category": null,
+    "has_parameters": false
+  },
+  "environment": {},
+  "packages": {
+    "shiny": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    },
+    "tidyverse": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    }
+  },
+  "files": {
+    "app.R": {
+      "checksum": "auto"
+    },
+    "gen_z_workplace_study.tsv": {
+      "checksum": "auto"
+    }
+  }
+}
