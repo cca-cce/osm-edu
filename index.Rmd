@@ -1,0 +1,39 @@
+---
+title: "some gen z test data"
+author: "nils.holmberg@resn.dev"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+# Define the URL for the raw TSV file
+url <- "https://raw.githubusercontent.com/cca-cce/osm-edu/refs/heads/main/gen_z_workplace_study.tsv"
+
+# Read the data from the URL as a tibble
+df <- read_delim(url, delim = "\t", show_col_types = FALSE) %>%
+  as_tibble()
+
+# Process data and generate the bar plot
+df %>%
+  group_by(Generation) %>%
+  summarize(mean_priority = mean(Mental_Health_Priority, na.rm = TRUE)) %>%
+  ggplot(aes(x = Generation, y = mean_priority, fill = Generation)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(mean_priority, 2)), vjust = -0.5, fontface = "bold") +
+  scale_y_continuous(limits = c(0, 5)) +
+  theme_minimal() +
+  labs(
+    title = "Mean Mental Health Priority by Generation",
+    subtitle = "Data source: GitHub Repository (osm-edu)",
+    x = "Generation",
+    y = "Mean Priority Score (1-5)",
+    fill = "Generation"
+  ) +
+  scale_fill_brewer(palette = "Set2") +
+  theme(legend.position = "none")
+```
+
+
+
