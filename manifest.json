@@ -1,7 +1,5 @@
 {
   "version": 1,
-  "locale": "en_US",
-  "platform": "4.4.1",
   "metadata": {
     "appmode": "shiny",
     "primary_rmd": null,
@@ -9,6 +7,7 @@
     "content_category": null,
     "has_parameters": false
   },
+  "environment": {},
   "packages": {
     "shiny": {
       "Source": "CRAN",
@@ -19,62 +18,6 @@
       "Repository": "https://cran.rstudio.com"
     },
     "bslib": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "DBI": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "KernSmooth": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "MASS": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "Matrix": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "R6": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "RColorBrewer": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "Rcpp": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "askpass": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "backports": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "base64enc": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "bit": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "bit64": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "blob": {
-      "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
-    },
-    "broom": {
       "Source": "CRAN",
       "Repository": "https://cran.rstudio.com"
     }
