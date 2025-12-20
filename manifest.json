@@ -1,7 +1,39 @@
 {
   "version": 1,
+  "locale": "en_US",
+  "platform": "4.4.1",
   "metadata": {
     "appmode": "shiny",
+    "primary_rmd": null,
+    "primary_html": null,
+    "content_category": null,
+    "has_parameters": false,
     "entrypoint": "app.R"
+  },
+  "environment": {
+    "r": "4.4.1"
+  },
+  "packages": {
+    "shiny": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    },
+    "tidyverse": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    },
+    "bslib": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    },
+    "RColorBrewer": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    }
+  },
+  "files": {
+    "app.R": {
+      "checksum": "auto"
+    }
   }
 }
