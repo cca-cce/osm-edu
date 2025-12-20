@@ -16,19 +16,35 @@
   "packages": {
     "shiny": {
       "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "shiny",
+        "Version": "1.10.0"
+      }
     },
     "tidyverse": {
       "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "tidyverse",
+        "Version": "2.0.0"
+      }
     },
     "bslib": {
       "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "bslib",
+        "Version": "0.8.0"
+      }
     },
     "RColorBrewer": {
       "Source": "CRAN",
-      "Repository": "https://cran.rstudio.com"
+      "Repository": "https://cran.rstudio.com",
+      "description": {
+        "Package": "RColorBrewer",
+        "Version": "1.1-3"
+      }
     }
   },
   "files": {
