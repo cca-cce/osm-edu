@@ -1,15 +1,19 @@
 {
   "version": 1,
   "metadata": {
-    "appmode": "shiny",
-    "primary_rmd": null,
+    "appmode": "rmd-static",
+    "primary_rmd": "index.Rmd",
     "primary_html": null,
     "content_category": null,
     "has_parameters": false
   },
   "environment": {},
   "packages": {
-    "shiny": {
+    "rmarkdown": {
+      "Source": "CRAN",
+      "Repository": "https://cran.rstudio.com"
+    },
+    "knitr": {
       "Source": "CRAN",
       "Repository": "https://cran.rstudio.com"
     },
@@ -19,11 +23,8 @@
     }
   },
   "files": {
-    "app.R": {
-      "checksum": "auto"
-    },
-    "gen_z_workplace_study.tsv": {
-      "checksum": "auto"
+    "index.Rmd": {
+      "checksum": "3b860273a5a8602d84638914560a897b"
     }
   }
 }
