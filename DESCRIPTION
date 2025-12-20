@@ -1,0 +1,14 @@
+Package: osm-edu-app
+Title: Gen Z Workplace Analysis
+Version: 0.1.0
+Author: Nils Holmberg
+Description: Interactive analysis of workplace values.
+Depends:
+    R (>= 4.1.0)
+Imports:
+    shiny,
+    tidyverse,
+    bslib,
+    RColorBrewer,
+    DBI
+Encoding: UTF-8
