@@ -1,10 +1,6 @@
 ---
-title: Recent Earthquakes in Aotearoa New Zealand
-author: Of Weak Intensity or Greater
-format: 
-  dashboard:
-    orientation: columns
-    theme: yeti
+title: "Recent Earthquakes in Aotearoa New Zealand"
+format: dashboard
 ---
 
 ```{r}
@@ -14,6 +10,7 @@ library(httr2)
 library(sf)
 library(leaflet)
 library(gt)
+library(scales)
 ```
 
 ```{r}
