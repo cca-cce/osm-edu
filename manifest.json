@@ -1,19 +1,31 @@
 {
-  "R": {
-    "Version": "4.4.1",
-    "Repositories": [
-      {
-        "Name": "CRAN",
-        "URL": "https://packagemanager.posit.co/cran/__linux__/jammy/latest"
-      }
-    ]
+  "version": 1,
+  "locale": "en_US",
+  "platform": "4.4.1",
+  "metadata": {
+    "appmode": "quarto-static",
+    "primary_rmd": "index.qmd",
+    "entrypoint": "index.qmd"
   },
-  "Packages": {
-    "tidyverse": { "Package": "tidyverse", "Source": "Repository", "Repository": "CRAN" },
-    "leaflet": { "Package": "leaflet", "Source": "Repository", "Repository": "CRAN" },
-    "httr2": { "Package": "httr2", "Source": "Repository", "Repository": "CRAN" },
-    "sf": { "Package": "sf", "Source": "Repository", "Repository": "CRAN" },
-    "gt": { "Package": "gt", "Source": "Repository", "Repository": "CRAN" },
-    "quarto": { "Package": "quarto", "Source": "Repository", "Repository": "CRAN" }
+  "environment": {
+    "r": "4.4.1"
+  },
+  "packages": {
+    "tidyverse": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "httr2": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "sf": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "leaflet": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "gt": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "htmltools": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "fastmap": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "digest": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "rlang": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "R6": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "cli": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "magrittr": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" },
+    "glue": { "Source": "CRAN", "Repository": "https://cran.rstudio.com" }
+  },
+  "files": {
+    "index.qmd": { "checksum": "auto" }
   }
 }
