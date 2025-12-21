@@ -1,12 +1,13 @@
-Package: osm-edu
-Title: Gen Z Workplace Study
+Package: nz-quake-dashboard
+Title: Recent Earthquakes in Aotearoa New Zealand
 Version: 0.1.0
-Authors@R: person("Nils", "Holmberg", role = c("aut", "cre"))
-Description: Shiny app for workplace analysis.
 Depends: R (>= 4.4.1)
 Imports:
-    shiny,
     tidyverse,
-    bslib,
-    RColorBrewer
+    httr2,
+    sf,
+    leaflet,
+    gt,
+    scales,
+    htmltools
 Encoding: UTF-8
