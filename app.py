@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
+from shiny import reactive, req
 from shiny.express import input, render, ui
-from shiny import reactive, Req
 
 # Page configuration and CDN scripts
 ui.page_opts(title="Shiny - Interactive Scatter & Regression", fillable=False)
@@ -86,35 +86,48 @@ ui.head_content(ui.tags.script(CUSTOM_PLOT_JS))
 # Main UI Layout using Tailwind CSS classes
 with ui.div(class_="bg-slate-900 text-slate-100 min-h-screen font-sans p-6"):
     with ui.div(class_="max-w-4xl mx-auto space-y-6"):
-        
+
         # Header
         with ui.tags.header(class_="border-b border-slate-800 pb-4"):
-            ui.tags.h1("Interactive Bivariate Normal Scatter Plot", class_="text-2xl font-bold text-white")
+            ui.tags.h1(
+                "Interactive Bivariate Normal Scatter Plot",
+                class_="text-2xl font-bold text-white",
+            )
             ui.tags.p(
                 "Generated with Shiny for Python & Observable Plot. Adjust correlation strength and direction to update the distribution and regression line in real time.",
-                class_="text-slate-400 text-sm mt-1"
+                class_="text-slate-400 text-sm mt-1",
             )
 
         # Controls Panel
-        with ui.div(class_="bg-slate-800/60 rounded-xl border border-slate-800 p-5 space-y-5"):
-            with ui.div(class_="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"):
-                
+        with ui.div(
+            class_="bg-slate-800/60 rounded-xl border border-slate-800 p-5 space-y-5"
+        ):
+            with ui.div(
+                class_="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"
+            ):
+
                 # Direction Toggle
                 with ui.div(class_="space-y-2"):
-                    ui.tags.label("Relationship Direction", class_="text-xs font-semibold text-slate-400 uppercase tracking-wider block")
+                    ui.tags.label(
+                        "Relationship Direction",
+                        class_="text-xs font-semibold text-slate-400 uppercase tracking-wider block",
+                    )
                     ui.input_radio_buttons(
                         "direction",
                         None,
                         choices={"pos": "Positive (+)", "neg": "Negative (−)"},
                         selected="pos",
-                        inline=True
+                        inline=True,
                     )
 
                 # Strength Slider
                 with ui.div(class_="space-y-2"):
                     with ui.div(class_="flex justify-between items-center"):
-                        ui.tags.label("Strength of Association", class_="text-xs font-semibold text-slate-400 uppercase tracking-wider")
-                        
+                        ui.tags.label(
+                            "Strength of Association",
+                            class_="text-xs font-semibold text-slate-400 uppercase tracking-wider",
+                        )
+
                         @render.text
                         def correlation_label():
                             sign = 1 if input.direction() == "pos" else -1
@@ -122,15 +135,32 @@ with ui.div(class_="bg-slate-900 text-slate-100 min-h-screen font-sans p-6"):
                             prefix = "+" if r >= 0 else ""
                             return f"r = {prefix}{r:.2f}"
 
-                    ui.input_slider("magnitude", None, min=0.0, max=0.99, value=0.70, step=0.01)
+                    ui.input_slider(
+                        "magnitude",
+                        None,
+                        min=0.0,
+                        max=0.99,
+                        value=0.70,
+                        step=0.01,
+                    )
 
             # Resample Control
-            with ui.div(class_="pt-2 border-t border-slate-700/50 flex justify-between items-center"):
-                ui.tags.span("Sample Size: N = 250", class_="text-xs text-slate-500")
-                ui.input_action_button("resample", "Resample Data", class_="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4 bg-transparent border-0 p-0")
+            with ui.div(
+                class_="pt-2 border-t border-slate-700/50 flex justify-between items-center"
+            ):
+                ui.tags.span(
+                    "Sample Size: N = 250", class_="text-xs text-slate-500"
+                )
+                ui.input_action_button(
+                    "resample",
+                    "Resample Data",
+                    class_="text-xs text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4 bg-transparent border-0 p-0",
+                )
 
         # Plot Output Container
-        with ui.div(class_="bg-slate-800/40 rounded-xl border border-slate-800 p-4 flex justify-center items-center"):
+        with ui.div(
+            class_="bg-slate-800/40 rounded-xl border border-slate-800 p-4 flex justify-center items-center"
+        ):
             ui.tags.div(id="plot-container", class_="w-full overflow-x-auto")
 
 
@@ -138,18 +168,18 @@ with ui.div(class_="bg-slate-900 text-slate-100 min-h-screen font-sans p-6"):
 @reactive.calc
 def current_data():
     input.resample()  # Re-run when "Resample Data" button is clicked
-    
+
     sign = 1 if input.direction() == "pos" else -1
     r = sign * input.magnitude()
     n = 250
-    
+
     abs_r = min(abs(r), 0.999)
     noise_weight = np.sqrt(1 - abs_r**2)
-    
+
     x = np.random.normal(0, 1, n)
     z = np.random.normal(0, 1, n)
     y = r * x + noise_weight * z
-    
+
     df = pd.DataFrame({"x": x, "y": y})
     return {"data": df.to_dict(orient="records"), "r": r, "n": n}
 
@@ -158,13 +188,10 @@ def current_data():
 @reactive.effect
 async def _update_observable_plot():
     payload = current_data()
-    await ui.insert_ui(
-        ui.tags.script(f"Shiny.renderDependencies([]); Shiny.setInputValue('trigger_plot', {payload});"),
-        selector="head",
-        where="beforeEnd"
-    )
+
     # Send custom message directly to frontend handler
     from shiny.session import get_current_session
+
     session = get_current_session()
     if session:
         await session.send_custom_message("render-observable-plot", payload)
