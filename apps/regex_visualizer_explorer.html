@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Visual Explorer & Interactive Tester</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        brand: {
+                            cyan: '#06b6d4',
+                            purple: '#8b5cf6',
+                            pink: '#ec4899',
+                            emerald: '#10b981',
+                            amber: '#f59e0b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Glassmorphism background cards */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-panel-glow {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(55, 65, 81, 0.8);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.5);
+        }
+
+        /* Match Highlighting Overlay Styles */
+        .match-bg-0 { background-color: rgba(6, 182, 212, 0.35); border-bottom: 2px solid #06b6d4; }
+        .match-bg-1 { background-color: rgba(139, 92, 246, 0.35); border-bottom: 2px solid #8b5cf6; }
+        .match-bg-2 { background-color: rgba(236, 72, 153, 0.35); border-bottom: 2px solid #ec4899; }
+        .match-bg-3 { background-color: rgba(16, 185, 129, 0.35); border-bottom: 2px solid #10b981; }
+        .match-bg-4 { background-color: rgba(245, 158, 11, 0.35); border-bottom: 2px solid #f59e0b; }
+
+        /* SVG Flowchart node styling */
+        .node-rect {
+            transition: all 0.2s ease;
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.4));
+        }
+        .node-group:hover .node-rect {
+            stroke: #06b6d4;
+            stroke-width: 2.5px;
+        }
+        .flow-line {
+            stroke-dasharray: 6;
+            animation: dash 30s linear infinite;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+
+        /* Grid lines background for graph visualizer */
+        .bg-grid-pattern {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-200 antialiased selection:bg-cyan-500 selection:text-slate-900">
+
+    <!-- Navigation Header -->
+    <header class="glass-panel sticky top-0 z-40 border-b border-slate-800/80 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 text-white shadow-lg shadow-cyan-500/20">
+                    <i data-lucide="regex" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-400 bg-clip-text text-transparent">
+                        Regex Flow Explorer
+                    </h1>
+                    <p class="text-xs text-slate-400">Interactive Visual State Machine & Tester</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- Preset Dropdown Selector -->
+                <div class="relative">
+                    <select id="presetSelect" class="bg-slate-800/90 border border-slate-700/80 text-slate-200 text-xs rounded-lg px-3 py-2 pr-8 cursor-pointer focus:outline-none focus:border-cyan-500 hover:border-slate-600 transition">
+                        <option value="" disabled selected>⚡ Load Preset Pattern...</option>
+                        <option value="email">📧 Email Address</option>
+                        <option value="url">🌐 Web URL (HTTP/HTTPS)</option>
+                        <option value="ipv4">🖥️ IPv4 Address</option>
+                        <option value="phone">📞 Phone Number (US/Intl)</option>
+                        <option value="date">📅 Date (YYYY-MM-DD)</option>
+                        <option value="hex">🎨 Hex Color Code</option>
+                        <option value="html">🏷️ HTML/XML Tags</option>
+                        <option value="password">🔒 Strong Password</option>
+                    </select>
+                </div>
+
+                <!-- Cheat Sheet Toggle Button -->
+                <button id="toggleCheatSheetBtn" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium transition text-slate-300 hover:text-white">
+                    <i data-lucide="book-open" class="w-4 h-4 text-cyan-400"></i>
+                    <span class="hidden sm:inline">Cheat Sheet</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-4 flex-grow flex flex-col gap-4">
+
+        <!-- REGEX INPUT BAR -->
+        <section class="glass-panel-glow rounded-2xl p-4 shadow-xl">
+            <div class="flex flex-col lg:flex-row items-stretch gap-3">
+                
+                <!-- Regex Field -->
+                <div class="flex-grow flex items-center bg-slate-900/90 rounded-xl border border-slate-700/80 px-3 py-2 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500/50 transition">
+                    <span class="text-slate-500 font-mono text-lg font-bold select-none mr-2">/</span>
+                    <input type="text" id="regexInput" value="([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})" placeholder="Type regex pattern here..." class="w-full bg-transparent text-cyan-300 font-mono text-base sm:text-lg focus:outline-none placeholder-slate-600">
+                    <span class="text-slate-500 font-mono text-lg font-bold select-none ml-2">/</span>
+                </div>
+
+                <!-- Flags Section -->
+                <div class="flex items-center justify-between sm:justify-start gap-1 bg-slate-900/90 rounded-xl border border-slate-700/80 px-3 py-2">
+                    <span class="text-xs font-semibold text-slate-400 mr-2 uppercase tracking-wider">Flags:</span>
+                    <label class="flex items-center space-x-1 cursor-pointer hover:text-cyan-400 px-1.5 py-1 rounded text-xs font-mono transition">
+                        <input type="checkbox" id="flagG" checked class="accent-cyan-500 rounded">
+                        <span>g</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer hover:text-cyan-400 px-1.5 py-1 rounded text-xs font-mono transition">
+                        <input type="checkbox" id="flagI" class="accent-cyan-500 rounded">
+                        <span>i</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer hover:text-cyan-400 px-1.5 py-1 rounded text-xs font-mono transition">
+                        <input type="checkbox" id="flagM" checked class="accent-cyan-500 rounded">
+                        <span>m</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer hover:text-cyan-400 px-1.5 py-1 rounded text-xs font-mono transition">
+                        <input type="checkbox" id="flagS" class="accent-cyan-500 rounded">
+                        <span>s</span>
+                    </label>
+                    <label class="flex items-center space-x-1 cursor-pointer hover:text-cyan-400 px-1.5 py-1 rounded text-xs font-mono transition">
+                        <input type="checkbox" id="flagU" class="accent-cyan-500 rounded">
+                        <span>u</span>
+                    </label>
+                </div>
+
+                <!-- Status Indicator & Clear Button -->
+                <div class="flex items-center justify-between sm:justify-end gap-2">
+                    <div id="regexStatus" class="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        <span>Valid Pattern</span>
+                    </div>
+                    <button id="copyRegexBtn" title="Copy Regex Code" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISUAL FLOWCHART CANVAS SECTION -->
+        <section class="glass-panel rounded-2xl p-4 flex flex-col relative overflow-hidden shadow-lg min-h-[320px]">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-800/80 pb-2">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="network" class="w-4 h-4 text-cyan-400"></i>
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Visual Pattern Flowchart Node Graph</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-[11px] text-slate-400 hidden sm:inline">Drag to pan • Scroll/buttons to zoom</span>
+                    <button id="zoomInBtn" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="zoom-in" class="w-3.5 h-3.5"></i></button>
+                    <button id="zoomOutBtn" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="zoom-out" class="w-3.5 h-3.5"></i></button>
+                    <button id="zoomResetBtn" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>
+                </div>
+            </div>
+
+            <!-- Interactive SVG Visual Container -->
+            <div id="visualizerContainer" class="w-full flex-grow relative bg-slate-950/80 rounded-xl border border-slate-800/80 overflow-hidden bg-grid-pattern min-h-[240px] cursor-grab active:cursor-grabbing">
+                <svg id="svgCanvas" class="w-full h-full min-h-[260px] select-none">
+                    <g id="viewportGroup" transform="translate(40, 60) scale(1)">
+                        <!-- Dynamic Nodes & Paths Rendered via JS -->
+                    </g>
+                </svg>
+            </div>
+        </section>
+
+        <!-- LOWER SECTION: SPLIT SCREEN FOR TEST INPUT AND MATCH INSPECTION -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- TEST TEXT INPUT AREA (7 Cols) -->
+            <section class="lg:col-span-7 glass-panel rounded-2xl p-4 flex flex-col shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="file-text" class="w-4 h-4 text-cyan-400"></i>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Sample Test Text</h2>
+                    </div>
+                    <span id="matchStatsBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono">
+                        0 Matches
+                    </span>
+                </div>
+
+                <!-- Text Area with Highlighting Backdrop -->
+                <div class="relative w-full min-h-[220px] bg-slate-950/90 rounded-xl border border-slate-800/90 font-mono text-sm overflow-hidden flex-grow">
+                    <!-- Layer 1: Formatted highlighted text backdrop -->
+                    <div id="highlightContainer" class="absolute inset-0 p-3 overflow-auto whitespace-pre-wrap break-words text-transparent pointer-events-none font-mono text-sm leading-relaxed" aria-hidden="true">
+                        <!-- Highlighting spans generated here -->
+                    </div>
+                    <!-- Layer 2: Editable Textarea -->
+                    <textarea id="sampleInput" class="absolute inset-0 w-full h-full p-3 bg-transparent text-slate-200 focus:outline-none resize-none font-mono text-sm leading-relaxed selection:bg-slate-700/80" placeholder="Paste or type test string here..." spellcheck="false">Welcome to Regex Flow Explorer!
+Contact support@example.com or sales.dept@company.org for assistance.
+You can also visit https://developer.mozilla.org or https://github.com/regex.
+Server IP list: 192.168.1.1, 10.0.0.255, and backup 172.16.254.1.
+Dates to remember: 2026-10-07, 2024-12-25, and 1999-01-01.
+Colors: #06b6d4, #8b5cf6, and #10b981.
+Phone numbers: (555) 019-2834 or +1-800-555-0199.</textarea>
+                </div>
+            </section>
+
+            <!-- MATCH DETAILS INSPECTOR (5 Cols) -->
+            <section class="lg:col-span-5 glass-panel rounded-2xl p-4 flex flex-col shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-cyan-400"></i>
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Matches & Captured Groups</h2>
+                    </div>
+                    <span id="execTimeBadge" class="text-[11px] text-slate-400 font-mono">0.0ms</span>
+                </div>
+
+                <!-- Match List Container -->
+                <div id="matchesList" class="flex-grow space-y-2 overflow-y-auto max-h-[260px] pr-1">
+                    <!-- Match Cards inserted via JavaScript -->
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- SYNTAX CHEAT SHEET DRAWER (Collapsible) -->
+    <aside id="cheatSheetDrawer" class="fixed right-0 top-0 bottom-0 w-80 sm:w-96 glass-panel z-50 border-l border-slate-700 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="book-open" class="w-5 h-5 text-cyan-400"></i>
+                <h3 class="font-bold text-slate-200">Regex Quick Reference</h3>
+            </div>
+            <button id="closeCheatSheetBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-4 overflow-y-auto flex-grow space-y-4 text-xs">
+            <!-- Character Classes -->
+            <div class="space-y-1.5">
+                <h4 class="font-bold text-cyan-400 uppercase tracking-wider text-[10px]">Character Classes</h4>
+                <div class="grid grid-cols-2 gap-1.5 font-mono">
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">.</span> Any char except newline</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">\w</span> Word char [a-zA-Z0-9_]</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">\d</span> Digit [0-9]</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">\s</span> Whitespace char</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">[abc]</span> Any in set</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-pink-400">[^abc]</span> Not in set</div>
+                </div>
+            </div>
+
+            <!-- Quantifiers -->
+            <div class="space-y-1.5">
+                <h4 class="font-bold text-cyan-400 uppercase tracking-wider text-[10px]">Quantifiers</h4>
+                <div class="grid grid-cols-2 gap-1.5 font-mono">
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">*</span> 0 or more</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">+</span> 1 or more</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">?</span> 0 or 1 (Optional)</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">{n}</span> Exactly n times</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">{n,}</span> n or more times</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-amber-400">{n,m}</span> Between n and m</div>
+                </div>
+            </div>
+
+            <!-- Anchors & Logic -->
+            <div class="space-y-1.5">
+                <h4 class="font-bold text-cyan-400 uppercase tracking-wider text-[10px]">Anchors & Groups</h4>
+                <div class="grid grid-cols-2 gap-1.5 font-mono">
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">^</span> Start of line</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">$</span> End of line</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">\b</span> Word boundary</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">(...)</span> Capture group</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">(?:...)</span> Non-capturing group</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-purple-400">a|b</span> Match a OR b</div>
+                </div>
+            </div>
+
+            <!-- Lookarounds -->
+            <div class="space-y-1.5">
+                <h4 class="font-bold text-cyan-400 uppercase tracking-wider text-[10px]">Lookarounds</h4>
+                <div class="grid grid-cols-1 gap-1.5 font-mono">
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-emerald-400">(?=...)</span> Positive Lookahead</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-emerald-400">(?!...)</span> Negative Lookahead</div>
+                    <div class="bg-slate-900/80 p-1.5 rounded border border-slate-800"><span class="text-emerald-400">(?&lt;=...)</span> Positive Lookbehind</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Notification Toast Container -->
+    <div id="toast" class="fixed bottom-4 right-4 z-50 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-2 bg-cyan-600 text-white px-4 py-2.5 rounded-xl shadow-xl font-medium text-sm">
+        <i data-lucide="check" class="w-4 h-4"></i>
+        <span id="toastMsg">Copied to clipboard!</span>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // Preset Regex Patterns Store
+        const PRESETS = {
+            email: {
+                pattern: "([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,5})",
+                flags: { g: true, i: true, m: true }
+            },
+            url: {
+                pattern: "(https?:\\/\\/)?([\\w\\.-]+)\\.([a-z]{2,6})([\\/\\w\\.-]*)*\\/?",
+                flags: { g: true, i: true, m: true }
+            },
+            ipv4: {
+                pattern: "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b",
+                flags: { g: true, i: false, m: true }
+            },
+            phone: {
+                pattern: "(\\+?\\d{1,3}[-.\\s]?)?\\(?(\\d{3})\\)?[-.\\s]?(\\d{3})[-.\\s]?(\\d{4})",
+                flags: { g: true, i: false, m: true }
+            },
+            date: {
+                pattern: "(\\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])",
+                flags: { g: true, i: false, m: true }
+            },
+            hex: {
+                pattern: "#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})\\b",
+                flags: { g: true, i: true, m: true }
+            },
+            html: {
+                pattern: "<([a-z1-6]+)([^<]+)*(?:>(.*)<\\/\\1>|\\s+\\/>)",
+                flags: { g: true, i: true, m: true }
+            },
+            password: {
+                pattern: "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+                flags: { g: false, i: false, m: true }
+            }
+        };
+
+        // DOM Elements
+        const regexInput = document.getElementById('regexInput');
+        const sampleInput = document.getElementById('sampleInput');
+        const highlightContainer = document.getElementById('highlightContainer');
+        const matchesList = document.getElementById('matchesList');
+        const matchStatsBadge = document.getElementById('matchStatsBadge');
+        const execTimeBadge = document.getElementById('execTimeBadge');
+        const regexStatus = document.getElementById('regexStatus');
+        const presetSelect = document.getElementById('presetSelect');
+        const viewportGroup = document.getElementById('viewportGroup');
+        const visualizerContainer = document.getElementById('visualizerContainer');
+
+        // Flag Checkboxes
+        const flagsObj = {
+            g: document.getElementById('flagG'),
+            i: document.getElementById('flagI'),
+            m: document.getElementById('flagM'),
+            s: document.getElementById('flagS'),
+            u: document.getElementById('flagU')
+        };
+
+        // SVG Viewport Pan & Zoom State
+        let transformState = { x: 40, y: 60, scale: 1 };
+        let isDragging = false;
+        let startPan = { x: 0, y: 0 };
+
+        /**
+         * Custom Lightweight Regex Tokenizer for Visualizing State Machine
+         */
+        function tokenizeRegex(pattern) {
+            const tokens = [];
+            let i = 0;
+            let groupCounter = 1;
+
+            if (pattern.startsWith('^')) {
+                tokens.push({ type: 'anchor', label: 'Start of Line (^)', color: '#8b5cf6' });
+                i++;
+            }
+
+            while (i < pattern.length) {
+                const char = pattern[i];
+
+                if (char === '$' && i === pattern.length - 1) {
+                    tokens.push({ type: 'anchor', label: 'End of Line ($)', color: '#8b5cf6' });
+                    i++;
+                    break;
+                }
+
+                // Escaped characters & special classes (\d, \w, \s, etc.)
+                if (char === '\\' && i + 1 < pattern.length) {
+                    const nextChar = pattern[i + 1];
+                    let label = `Literal '\\${nextChar}'`;
+                    let type = 'class';
+
+                    if (nextChar === 'd') label = 'Digit [0-9] (\\d)';
+                    else if (nextChar === 'w') label = 'Word Char (\\w)';
+                    else if (nextChar === 's') label = 'Whitespace (\\s)';
+                    else if (nextChar === 'b') label = 'Word Boundary (\\b)';
+                    
+                    tokens.push({ type: 'class', label, color: '#ec4899' });
+                    i += 2;
+                    continue;
+                }
+
+                // Character Sets [a-z0-9]
+                if (char === '[') {
+                    let endIdx = pattern.indexOf(']', i);
+                    if (endIdx !== -1) {
+                        let rawSet = pattern.slice(i, endIdx + 1);
+                        tokens.push({ type: 'set', label: `Set: ${rawSet}`, color: '#ec4899' });
+                        i = endIdx + 1;
+                        continue;
+                    }
+                }
+
+                // Groups (...)
+                if (char === '(') {
+                    let groupNum = groupCounter++;
+                    let isNonCapturing = pattern.startsWith('(?:', i);
+                    let label = isNonCapturing ? 'Non-Capture Group' : `Group #${groupNum}`;
+                    tokens.push({ type: 'group-start', label, color: '#06b6d4' });
+                    i += isNonCapturing ? 3 : 1;
+                    continue;
+                }
+
+                if (char === ')') {
+                    tokens.push({ type: 'group-end', label: 'End Group', color: '#06b6d4' });
+                    i++;
+                    continue;
+                }
+
+                // Quantifiers (+, *, ?, {n,m})
+                if (['+', '*', '?'].includes(char)) {
+                    let qMap = { '+': '1 or more (+)', '*': '0 or more (*)', '?': 'Optional (?)' };
+                    // Apply to previous token if exists
+                    if (tokens.length > 0) {
+                        tokens[tokens.length - 1].quantifier = qMap[char];
+                    }
+                    i++;
+                    continue;
+                }
+
+                if (char === '{') {
+                    let endBrace = pattern.indexOf('}', i);
+                    if (endBrace !== -1) {
+                        let qStr = pattern.slice(i, endBrace + 1);
+                        if (tokens.length > 0) {
+                            tokens[tokens.length - 1].quantifier = `Repeat ${qStr}`;
+                        }
+                        i = endBrace + 1;
+                        continue;
+                    }
+                }
+
+                // Alternation |
+                if (char === '|') {
+                    tokens.push({ type: 'alt', label: 'OR (|)', color: '#f59e0b' });
+                    i++;
+                    continue;
+                }
+
+                // Literals
+                tokens.push({ type: 'literal', label: `'${char}'`, color: '#10b981' });
+                i++;
+            }
+
+            return tokens;
+        }
+
+        /**
+         * Render Nodes and Flow Connections on SVG Viewport
+         */
+        function renderVisualizer(pattern) {
+            viewportGroup.innerHTML = '';
+
+            if (!pattern) {
+                viewportGroup.innerHTML = `<text x="50" y="30" fill="#64748b" font-family="JetBrains Mono" font-size="14">Enter a pattern above to view node flowchart...</text>`;
+                return;
+            }
+
+            const tokens = tokenizeRegex(pattern);
+
+            // Flow node layout constants
+            const nodeWidth = 130;
+            const nodeHeight = 44;
+            const nodeGap = 35;
+            let currentX = 50;
+            const startY = 20;
+
+            // Render Start Anchor Node
+            let svgContent = `
+                <g class="node-group">
+                    <circle cx="${currentX - 25}" cy="${startY + nodeHeight/2}" r="12" fill="#10b981" />
+                    <text x="${currentX - 25}" y="${startY + nodeHeight/2 + 4}" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="bold">Start</text>
+                    <line x1="${currentX - 13}" y1="${startY + nodeHeight/2}" x2="${currentX}" y2="${startY + nodeHeight/2}" stroke="#06b6d4" stroke-width="2" class="flow-line" />
+                </g>
+            `;
+
+            tokens.forEach((token, idx) => {
+                const nextX = currentX + nodeWidth;
+                const nodeColor = token.color || '#3b82f6';
+
+                // Node Rectangle & Text
+                svgContent += `
+                    <g class="node-group cursor-pointer">
+                        <rect x="${currentX}" y="${startY}" width="${nodeWidth}" height="${nodeHeight}" rx="10" fill="#111827" stroke="${nodeColor}" stroke-width="1.5" class="node-rect" />
+                        <text x="${currentX + nodeWidth/2}" y="${startY + 20}" text-anchor="middle" fill="#f3f4f6" font-family="JetBrains Mono" font-size="11" font-weight="600">${escapeHtml(token.label)}</text>
+                        ${token.quantifier ? `
+                            <rect x="${currentX + 15}" y="${startY + nodeHeight - 10}" width="${nodeWidth - 30}" height="16" rx="4" fill="${nodeColor}" opacity="0.9" />
+                            <text x="${currentX + nodeWidth/2}" y="${startY + nodeHeight + 2}" text-anchor="middle" fill="#000000" font-size="9" font-weight="bold">${token.quantifier}</text>
+                        ` : ''}
+                    </g>
+                `;
+
+                // Connecting Line to next node
+                const connX2 = nextX + nodeGap;
+                svgContent += `
+                    <line x1="${nextX}" y1="${startY + nodeHeight/2}" x2="${connX2}" y2="${startY + nodeHeight/2}" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" class="flow-line" />
+                    <polygon points="${connX2-4},${startY + nodeHeight/2 - 4} ${connX2},${startY + nodeHeight/2} ${connX2-4},${startY + nodeHeight/2 + 4}" fill="#06b6d4" />
+                `;
+
+                currentX += nodeWidth + nodeGap;
+            });
+
+            // End Node
+            svgContent += `
+                <g class="node-group">
+                    <circle cx="${currentX + 15}" cy="${startY + nodeHeight/2}" r="14" fill="#8b5cf6" />
+                    <circle cx="${currentX + 15}" cy="${startY + nodeHeight/2}" r="10" fill="none" stroke="#ffffff" stroke-width="2" />
+                    <text x="${currentX + 15}" y="${startY + nodeHeight/2 + 3.5}" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="bold">MATCH</text>
+                </g>
+            `;
+
+            viewportGroup.innerHTML = svgContent;
+        }
+
+        /**
+         * Main Regex Processing Engine: Updates Highlighting and Match List
+         */
+        function processRegex() {
+            const patternStr = regexInput.value;
+            const text = sampleInput.value;
+
+            // Get selected flags
+            let flags = '';
+            if (flagsObj.g.checked) flags += 'g';
+            if (flagsObj.i.checked) flags += 'i';
+            if (flagsObj.m.checked) flags += 'm';
+            if (flagsObj.s.checked) flags += 's';
+            if (flagsObj.u.checked) flags += 'u';
+
+            if (!patternStr) {
+                updateStatus(true, 'Empty Pattern');
+                highlightContainer.innerHTML = escapeHtml(text);
+                matchesList.innerHTML = `<div class="p-4 text-center text-slate-500 text-xs">Enter a regex pattern to see details.</div>`;
+                matchStatsBadge.textContent = '0 Matches';
+                renderVisualizer('');
+                return;
+            }
+
+            let regex;
+            try {
+                regex = new RegExp(patternStr, flags);
+                updateStatus(true, 'Valid Pattern');
+            } catch (err) {
+                updateStatus(false, err.message);
+                highlightContainer.innerHTML = escapeHtml(text);
+                matchesList.innerHTML = `<div class="p-3 text-red-400/90 bg-red-500/10 rounded-xl text-xs font-mono border border-red-500/20">⚠️ ${escapeHtml(err.message)}</div>`;
+                matchStatsBadge.textContent = 'Error';
+                renderVisualizer(patternStr);
+                return;
+            }
+
+            // Render Node Graph
+            renderVisualizer(patternStr);
+
+            // Perform Regex Match Execution
+            const startTime = performance.now();
+            const matches = [];
+            let match;
+
+            if (flags.includes('g')) {
+                let matchCount = 0;
+                while ((match = regex.exec(text)) !== null) {
+                    matches.push(match);
+                    matchCount++;
+                    // Prevent infinite loop on 0-length matches
+                    if (match.index === regex.lastIndex) {
+                        regex.lastIndex++;
+                    }
+                    if (matchCount > 500) break; // Safety cap
+                }
+            } else {
+                match = regex.exec(text);
+                if (match) matches.push(match);
+            }
+            const endTime = performance.now();
+            execTimeBadge.textContent = `${(endTime - startTime).toFixed(2)}ms`;
+
+            // Render Text Highlighting & Detailed Match List
+            renderHighlightsAndMatches(text, matches);
+        }
+
+        /**
+         * Highlight Sample Text & Populate Match Cards
+         */
+        function renderHighlightsAndMatches(text, matches) {
+            matchStatsBadge.textContent = `${matches.length} Match${matches.length === 1 ? '' : 'es'}`;
+
+            if (matches.length === 0) {
+                highlightContainer.innerHTML = escapeHtml(text);
+                matchesList.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs flex flex-col items-center"><i data-lucide="search-x" class="w-8 h-8 mb-2 opacity-50"></i>No matches found for pattern</div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            let highlightedHtml = '';
+            let lastIndex = 0;
+            let matchCardsHtml = '';
+
+            matches.forEach((m, idx) => {
+                const matchStart = m.index;
+                const matchEnd = matchStart + m[0].length;
+                const colorClass = `match-bg-${idx % 5}`;
+
+                // Unmatched prefix text
+                highlightedHtml += escapeHtml(text.slice(lastIndex, matchStart));
+                // Highlighted Match Text
+                highlightedHtml += `<mark class="${colorClass} text-slate-100 rounded-sm px-0.5">${escapeHtml(m[0])}</mark>`;
+                lastIndex = matchEnd;
+
+                // Build Match Detail Card
+                let groupsHtml = '';
+                if (m.length > 1) {
+                    groupsHtml = '<div class="mt-2 space-y-1 border-t border-slate-800/80 pt-1.5">';
+                    for (let g = 1; g < m.length; g++) {
+                        groupsHtml += `
+                            <div class="flex items-center justify-between text-[11px] font-mono bg-slate-900/60 px-2 py-0.5 rounded">
+                                <span class="text-slate-400">Group $${g}:</span>
+                                <span class="text-cyan-300 font-semibold">${m[g] !== undefined ? escapeHtml(m[g]) : '<i class="text-slate-600">undefined</i>'}</span>
+                            </div>
+                        `;
+                    }
+                    groupsHtml += '</div>';
+                }
+
+                matchCardsHtml += `
+                    <div class="bg-slate-900/90 border border-slate-800 hover:border-slate-700 p-2.5 rounded-xl text-xs transition">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-cyan-400">Match #${idx + 1}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Pos: ${matchStart}-${matchEnd} (${m[0].length} chars)</span>
+                        </div>
+                        <div class="font-mono text-slate-200 bg-slate-950 p-1.5 rounded border border-slate-800/80 break-all select-all">
+                            ${escapeHtml(m[0])}
+                        </div>
+                        ${groupsHtml}
+                    </div>
+                `;
+            });
+
+            // Append remaining trailing text
+            highlightedHtml += escapeHtml(text.slice(lastIndex));
+
+            // Append trailing newline buffer to align textarea and backdrop scrolling exactly
+            highlightContainer.innerHTML = highlightedHtml + '\n';
+            matchesList.innerHTML = matchCardsHtml;
+            lucide.createIcons();
+        }
+
+        /**
+         * Helper: Update Status Pill UI
+         */
+        function updateStatus(isValid, msg) {
+            if (isValid) {
+                regexStatus.className = "flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium";
+                regexStatus.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>${msg}</span>`;
+            } else {
+                regexStatus.className = "flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium";
+                regexStatus.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4"></i><span>Invalid Regex</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        /**
+         * Synchronize Scroll between Textarea and Highlight Backdrop
+         */
+        sampleInput.addEventListener('scroll', () => {
+            highlightContainer.scrollTop = sampleInput.scrollTop;
+            highlightContainer.scrollLeft = sampleInput.scrollLeft;
+        });
+
+        /**
+         * SVG Viewport Pan & Zoom Controls
+         */
+        function updateViewportTransform() {
+            viewportGroup.setAttribute('transform', `translate(${transformState.x}, ${transformState.y}) scale(${transformState.scale})`);
+        }
+
+        visualizerContainer.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startPan = { x: e.clientX - transformState.x, y: e.clientY - transformState.y };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            transformState.x = e.clientX - startPan.x;
+            transformState.y = e.clientY - startPan.y;
+            updateViewportTransform();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        visualizerContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            transformState.scale = Math.max(0.4, Math.min(2.5, transformState.scale * zoomFactor));
+            updateViewportTransform();
+        });
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => {
+            transformState.scale = Math.min(2.5, transformState.scale * 1.2);
+            updateViewportTransform();
+        });
+
+        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+            transformState.scale = Math.max(0.4, transformState.scale * 0.8);
+            updateViewportTransform();
+        });
+
+        document.getElementById('zoomResetBtn').addEventListener('click', () => {
+            transformState = { x: 40, y: 60, scale: 1 };
+            updateViewportTransform();
+        });
+
+        /**
+         * Load Presets Event
+         */
+        presetSelect.addEventListener('change', (e) => {
+            const presetKey = e.target.value;
+            if (PRESETS[presetKey]) {
+                const p = PRESETS[presetKey];
+                regexInput.value = p.pattern;
+                flagsObj.g.checked = p.flags.g;
+                flagsObj.i.checked = p.flags.i;
+                flagsObj.m.checked = p.flags.m;
+                processRegex();
+                showToast(`Loaded "${presetSelect.options[presetSelect.selectedIndex].text}" preset`);
+            }
+        });
+
+        /**
+         * Copy Regex Command
+         */
+        document.getElementById('copyRegexBtn').addEventListener('click', () => {
+            let flags = '';
+            if (flagsObj.g.checked) flags += 'g';
+            if (flagsObj.i.checked) flags += 'i';
+            if (flagsObj.m.checked) flags += 'm';
+            if (flagsObj.s.checked) flags += 's';
+            if (flagsObj.u.checked) flags += 'u';
+
+            const fullRegexStr = `/${regexInput.value}/${flags}`;
+            
+            // Clipboard fallback standard
+            const tempInput = document.createElement('textarea');
+            tempInput.value = fullRegexStr;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast('Regex copied to clipboard!');
+        });
+
+        /**
+         * Cheat Sheet Drawer Toggle Logic
+         */
+        const cheatSheetDrawer = document.getElementById('cheatSheetDrawer');
+        document.getElementById('toggleCheatSheetBtn').addEventListener('click', () => {
+            cheatSheetDrawer.classList.toggle('translate-x-full');
+        });
+        document.getElementById('closeCheatSheetBtn').addEventListener('click', () => {
+            cheatSheetDrawer.classList.add('translate-x-full');
+        });
+
+        /**
+         * Utility: Escape HTML tags
+         */
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
+        /**
+         * Utility: Toast Popup
+         */
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+            }, 2500);
+        }
+
+        // Attach Real-time Change Listeners
+        regexInput.addEventListener('input', processRegex);
+        sampleInput.addEventListener('input', processRegex);
+        Object.values(flagsObj).forEach(cb => cb.addEventListener('change', processRegex));
+
+        // Initial Initialization on Window Load
+        window.onload = function() {
+            lucide.createIcons();
+            processRegex();
+        };
+    </script>
+</body>
+</html>

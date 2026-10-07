@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Palette Extractor & Accessibility Inspector</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- ColorThief for color extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+  <!-- Chroma.js for color manipulation & WCAG contrast calculations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.4.2/chroma.min.js"></script>
+
+  <style>
+    /* Color-blindness SVG Filter Simulations */
+    .filter-protanopia { filter: url('#protanopia-filter'); }
+    .filter-deuteranopia { filter: url('#deuteranopia-filter'); }
+    .filter-tritanopia { filter: url('#tritanopia-filter'); }
+    .filter-achromatopsia { filter: url('#achromatopsia-filter'); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans p-6">
+
+  <!-- SVG Matrix Filters for Color Vision Deficiency Simulations -->
+  <svg class="hidden" xmlns="http://www.w3.org/2000/svg">
+    <filter id="protanopia-filter">
+      <feColorMatrix type="matrix" values="0.56667 0.43333 0.00000 0 0  0.55833 0.44167 0.00000 0 0  0.00000 0.24167 0.75833 0 0  0 0 0 1 0" />
+    </filter>
+    <filter id="deuteranopia-filter">
+      <feColorMatrix type="matrix" values="0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0" />
+    </filter>
+    <filter id="tritanopia-filter">
+      <feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0" />
+    </filter>
+    <filter id="achromatopsia-filter">
+      <feColorMatrix type="matrix" values="0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0.299 0.587 0.114 0 0  0 0 0 1 0" />
+    </filter>
+  </svg>
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="border-b border-slate-800 pb-4">
+      <h1 class="text-2xl font-bold tracking-tight text-white">Palette Inspector & Accessibility Tool</h1>
+      <p class="text-slate-400 text-sm mt-1">Upload an image to extract color swatches, verify WCAG contrast compliance, and simulate color vision deficiencies.</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Left Column: Upload & Palette Grid -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Image Drag & Drop Area -->
+        <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-800/50 rounded-xl p-8 text-center cursor-pointer transition-colors relative overflow-hidden flex flex-col items-center justify-center min-h-[220px]">
+          <input type="file" id="file-input" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+          
+          <div id="upload-prompt" class="space-y-3">
+            <div class="w-12 h-12 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            </div>
+            <div>
+              <p class="text-base font-medium text-slate-200">Click to upload or drag & drop an image</p>
+              <p class="text-xs text-slate-400 mt-1">PNG, JPG, WebP, or GIF up to 10MB</p>
+            </div>
+          </div>
+
+          <img id="image-preview" class="hidden max-h-64 object-contain rounded-lg border border-slate-700" alt="Uploaded Preview">
+        </div>
+
+        <!-- Extracted Palette Grid -->
+        <div class="bg-slate-800/40 rounded-xl border border-slate-800 p-5 space-y-4">
+          <h2 class="text-lg font-semibold text-white">Extracted Palette</h2>
+          <div id="palette-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+            <p class="text-sm text-slate-500 col-span-full py-6 text-center">Upload an image above to extract a color palette.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Inspector Panels -->
+      <div class="space-y-6">
+        
+        <!-- WCAG Contrast Matrix -->
+        <div class="bg-slate-800/40 rounded-xl border border-slate-800 p-5 space-y-4">
+          <h2 class="text-lg font-semibold text-white">WCAG Accessibility Check</h2>
+          <div id="selected-color-banner" class="p-3 rounded-lg flex items-center justify-between text-xs font-mono">
+            <span>Select a color swatch from the palette</span>
+          </div>
+
+          <div id="wcag-matrix" class="space-y-3">
+            <p class="text-xs text-slate-500">Contrast tests will appear once a swatch is selected.</p>
+          </div>
+        </div>
+
+        <!-- Color Blindness Simulation -->
+        <div class="bg-slate-800/40 rounded-xl border border-slate-800 p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-white">Vision Simulation</h2>
+            <select id="vision-select" class="bg-slate-900 border border-slate-700 text-xs rounded-md px-2 py-1 text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              <option value="none">Normal Vision</option>
+              <option value="protanopia">Protanopia (No Red)</option>
+              <option value="deuteranopia">Deuteranopia (No Green)</option>
+              <option value="tritanopia">Tritanopia (No Blue)</option>
+              <option value="achromatopsia">Achromatopsia (Monochrome)</option>
+            </select>
+          </div>
+
+          <div id="simulated-palette" class="flex flex-wrap gap-2 p-3 bg-slate-900 rounded-lg border border-slate-800 min-h-[60px] items-center justify-center">
+            <p class="text-xs text-slate-500">No active palette</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const colorThief = new ColorThief();
+    let currentPalette = [];
+    let activeColor = null;
+
+    const fileInput = document.getElementById('file-input');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const paletteGrid = document.getElementById('palette-grid');
+    const wcagMatrix = document.getElementById('wcag-matrix');
+    const selectedColorBanner = document.getElementById('selected-color-banner');
+    const visionSelect = document.getElementById('vision-select');
+    const simulatedPalette = document.getElementById('simulated-palette');
+
+    // Handle File Upload
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        imagePreview.src = event.target.result;
+        imagePreview.classList.remove('hidden');
+        uploadPrompt.classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Extract colors when image loads
+    imagePreview.addEventListener('load', () => {
+      try {
+        const rawPalette = colorThief.getPalette(imagePreview, 10);
+        currentPalette = rawPalette.map(rgb => chroma(rgb).hex());
+        renderPalette();
+        if (currentPalette.length > 0) {
+          selectColor(currentPalette[0]);
+        }
+      } catch (err) {
+        console.error("Color extraction failed:", err);
+      }
+    });
+
+    // Render Swatches
+    function renderPalette() {
+      paletteGrid.innerHTML = '';
+      currentPalette.forEach((hex) => {
+        const swatch = document.createElement('button');
+        swatch.className = 'group relative rounded-lg p-3 border border-slate-700/50 flex flex-col items-center gap-2 hover:border-slate-500 transition-all text-left w-full';
+        
+        swatch.innerHTML = `
+          <div class="w-full h-16 rounded-md shadow-inner" style="background-color: ${hex}"></div>
+          <span class="font-mono text-xs text-slate-300 group-hover:text-white">${hex.toUpperCase()}</span>
+        `;
+
+        swatch.addEventListener('click', () => selectColor(hex));
+        paletteGrid.appendChild(swatch);
+      });
+
+      renderSimulatedPalette();
+    }
+
+    // Select Active Swatch & Run Accessibility Calculations
+    function selectColor(hex) {
+      activeColor = hex;
+      const isLight = chroma(hex).luminance() > 0.5;
+      
+      selectedColorBanner.style.backgroundColor = hex;
+      selectedColorBanner.style.color = isLight ? '#0f172a' : '#ffffff';
+      selectedColorBanner.innerHTML = `
+        <span class="font-bold">Active: ${hex.toUpperCase()}</span>
+        <span>${chroma(hex).css()}</span>
+      `;
+
+      renderWCAGChecks(hex);
+    }
+
+    // Compute WCAG Contrast Ratios against Dark/Light backgrounds
+    function renderWCAGChecks(hex) {
+      const whiteContrast = chroma.contrast(hex, '#ffffff');
+      const darkContrast = chroma.contrast(hex, '#0f172a');
+
+      wcagMatrix.innerHTML = `
+        ${renderContrastRow('Against White (#FFFFFF)', hex, '#ffffff', whiteContrast)}
+        ${renderContrastRow('Against Dark (#0F172A)', hex, '#0f172a', darkContrast)}
+      `;
+    }
+
+    function renderContrastRow(label, fg, bg, ratio) {
+      const passAA = ratio >= 4.5;
+      const passAALarge = ratio >= 3.0;
+
+      return `
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="text-slate-400">${label}</span>
+            <span class="font-mono font-bold ${passAA ? 'text-emerald-400' : 'text-amber-400'}">${ratio.toFixed(2)}:1</span>
+          </div>
+          <div class="p-2 rounded text-xs font-medium" style="background-color: ${bg}; color: ${fg}">
+            Sample Text Preview
+          </div>
+          <div class="flex gap-2 text-[10px]">
+            <span class="px-1.5 py-0.5 rounded ${passAA ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+              Normal Text: ${passAA ? 'PASS (AA)' : 'FAIL'}
+            </span>
+            <span class="px-1.5 py-0.5 rounded ${passAALarge ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
+              Large Text: ${passAALarge ? 'PASS (AA)' : 'FAIL'}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Render Vision Deficiency Simulation
+    function renderSimulatedPalette() {
+      if (currentPalette.length === 0) return;
+      simulatedPalette.innerHTML = '';
+      
+      const filterClass = visionSelect.value !== 'none' ? `filter-${visionSelect.value}` : '';
+
+      currentPalette.forEach((hex) => {
+        const circle = document.createElement('div');
+        circle.className = `w-8 h-8 rounded-full shadow-md ${filterClass}`;
+        circle.style.backgroundColor = hex;
+        circle.title = hex;
+        simulatedPalette.appendChild(circle);
+      });
+    }
+
+    visionSelect.addEventListener('change', renderSimulatedPalette);
+  </script>
+</body>
+</html>

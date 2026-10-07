@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FloraFocus - Dynamic Pomodoro Garden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-gradient-day: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      --glass-bg: rgba(30, 41, 59, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      --accent-emerald: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.3);
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --card-radius: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #090d16;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Background Glows */
+    .bg-glow-1 {
+      position: absolute;
+      top: -10%;
+      left: 15%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-glow-2 {
+      position: absolute;
+      bottom: -10%;
+      right: 15%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 24px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .brand-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .stats-badge {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.875rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: var(--accent-emerald);
+    }
+
+    main {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 32px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 32px 40px;
+    }
+
+    /* Terrarium Canvas Area */
+    .terrarium-container {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .canvas-header {
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .plant-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .plant-stage {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-emerald);
+      font-weight: 700;
+    }
+
+    .plant-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      color: var(--text-main);
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #terrariumCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Controls Drawer / Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--card-radius);
+      box-shadow: var(--glass-shadow);
+      backdrop-filter: blur(16px);
+      padding: 28px;
+    }
+
+    /* Timer Display */
+    .timer-card {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .mode-selector {
+      display: flex;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--accent-emerald);
+      color: #042f2e;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .time-display {
+      font-size: 4.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      margin: 12px 0;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .timer-controls {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: 14px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #022c22;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--glass-border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+
+    /* Duration Selector */
+    .duration-presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      width: 100%;
+    }
+
+    .preset-btn {
+      flex: 1;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .preset-btn.active, .preset-btn:hover {
+      border-color: var(--accent-emerald);
+      color: var(--text-main);
+    }
+
+    /* Plant Selector Grid */
+    .species-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .species-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .species-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .species-card:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .species-card.active {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .species-icon {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 6px;
+    }
+
+    .species-name {
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--accent-emerald);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      padding: 14px 28px;
+      border-radius: 40px;
+      color: #fff;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        min-height: 380px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow-1"></div>
+  <div class="bg-glow-2"></div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#022c22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/>
+          <path d="M12 2v7"/>
+        </svg>
+      </div>
+      <span class="brand-title">FloraFocus</span>
+    </div>
+
+    <div class="stats-badge">
+      <div class="stat-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>Focused: <span class="stat-value" id="statFocusTime">0m</span></span>
+      </div>
+      <div style="width: 1px; height: 16px; background: var(--glass-border);"></div>
+      <div class="stat-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        <span>Blooms: <span class="stat-value" id="statBlooms">0</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Terrarium View Port -->
+    <div class="terrarium-container">
+      <div class="canvas-header">
+        <div class="plant-info">
+          <span class="plant-stage" id="growthStageText">Seed Stage</span>
+          <span class="plant-name" id="plantNameText">Emerald Fern</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);" id="progressPercent">0% Grown</div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="terrariumCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Right Controls Drawer -->
+    <div class="sidebar">
+      <!-- Timer Glass Card -->
+      <div class="glass-card timer-card">
+        <div class="mode-selector">
+          <button class="mode-btn active" onclick="setMode('focus')">Focus</button>
+          <button class="mode-btn" onclick="setMode('shortBreak')">Short Break</button>
+          <button class="mode-btn" onclick="setMode('longBreak')">Long Break</button>
+        </div>
+
+        <div class="time-display" id="timeDisplay">25:00</div>
+
+        <div class="duration-presets" id="presetContainer">
+          <button class="preset-btn" onclick="setDuration(15)">15m</button>
+          <button class="preset-btn active" onclick="setDuration(25)">25m</button>
+          <button class="preset-btn" onclick="setDuration(45)">45m</button>
+          <button class="preset-btn" onclick="setDuration(60)">60m</button>
+        </div>
+
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span id="startBtnText">Start Focus</span>
+          </button>
+          <button class="btn btn-secondary" onclick="resetTimer()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Species Picker Card -->
+      <div class="glass-card">
+        <div class="species-title">Select Seed Species</div>
+        <div class="species-grid">
+          <div class="species-card active" onclick="selectSpecies('fern')" id="spec-fern">
+            <svg class="species-icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+              <path d="M12 22V2M12 18c3-2 5-6 4-10M12 14c-3-2-5-6-4-10M12 10c2-1.5 3.5-4 3-7"/>
+            </svg>
+            <span class="species-name">Fern</span>
+          </div>
+          <div class="species-card" onclick="selectSpecies('sakura')" id="spec-sakura">
+            <svg class="species-icon" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/><path d="M12 2a4 4 0 0 1 4 4c0 3-4 6-4 6s-4-3-4-6a4 4 0 0 1 4-4z"/>
+              <path d="M22 12a4 4 0 0 1-4 4c-3 0-6-4-6-4s3-4 6-4a4 4 0 0 1 4 4z"/>
+            </svg>
+            <span class="species-name">Sakura</span>
+          </div>
+          <div class="species-card" onclick="selectSpecies('succulent')" id="spec-succulent">
+            <svg class="species-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+              <path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10z"/>
+              <path d="M12 6v12M6 12h12"/>
+            </svg>
+            <span class="species-name">Cactus</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <span id="toastMsg">Session completed! Your plant has bloomed.</span>
+  </div>
+
+  <script>
+    // --- Application State ---
+    let currentMode = 'focus'; // 'focus', 'shortBreak', 'longBreak'
+    let durationMinutes = 25;
+    let totalSeconds = 25 * 60;
+    let secondsLeft = 25 * 60;
+    let isRunning = false;
+    let timerInterval = null;
+    let currentSpecies = 'fern';
+    
+    // Stats tracking
+    let totalFocusSeconds = 0;
+    let totalBlooms = 0;
+
+    // Plant Growth Model
+    let growthProgress = 0; // 0.0 to 1.0
+    let visualGrowth = 0;   // Accelerated visual progress value
+    let particles = [];
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('terrariumCanvas');
+    const ctx = canvas.getContext('2d');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const startBtn = document.getElementById('startBtn');
+    const startBtnText = document.getElementById('startBtnText');
+    const growthStageText = document.getElementById('growthStageText');
+    const plantNameText = document.getElementById('plantNameText');
+    const progressPercent = document.getElementById('progressPercent');
+    const statFocusTime = document.getElementById('statFocusTime');
+    const statBlooms = document.getElementById('statBlooms');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+
+    // Species Definitions
+    const speciesData = {
+      fern: {
+        name: 'Emerald Fern',
+        primaryColor: '#10b981',
+        secondaryColor: '#059669',
+        accentColor: '#34d399',
+        stages: ['Emerging Sprout', 'Sprouting Vine', 'Expanding Fronds', 'Full Emerald Bloom']
+      },
+      sakura: {
+        name: 'Blossom Tree',
+        primaryColor: '#f43f5e',
+        secondaryColor: '#be123c',
+        accentColor: '#fb7185',
+        stages: ['Early Sapling', 'Slender Trunk', 'Branching Canopy', 'Radiant Sakura Bloom']
+      },
+      succulent: {
+        name: 'Luminous Cactus',
+        primaryColor: '#0284c7',
+        secondaryColor: '#0369a1',
+        accentColor: '#38bdf8',
+        stages: ['Sprout Bud', 'Rising Stem', 'Spine Formation', 'Celestial Flower Burst']
+      }
+    };
+
+    // Resizing Canvas
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Nonlinear easing: fast early sprout, smooth tapering toward completion
+    function getVisualGrowth(p) {
+      if (p <= 0) return 0;
+      // Square root easing gives immediate early visual progress
+      return Math.min(1, Math.pow(p, 0.45));
+    }
+
+    // --- Timer Engine ---
+    function updateDisplay() {
+      const mins = Math.floor(secondsLeft / 60);
+      const secs = secondsLeft % 60;
+      timeDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      
+      // Update Linear & Visual Growth Curves
+      growthProgress = 1 - (secondsLeft / totalSeconds);
+      visualGrowth = getVisualGrowth(growthProgress);
+
+      progressPercent.textContent = `${Math.floor(growthProgress * 100)}% Grown`;
+
+      // Update Stage Text based on visual progress so stages transition faster
+      const stages = speciesData[currentSpecies].stages;
+      const stageIdx = Math.min(Math.floor(visualGrowth * stages.length), stages.length - 1);
+      growthStageText.textContent = stages[stageIdx];
+    }
+
+    function toggleTimer() {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      if (secondsLeft <= 0) return;
+      isRunning = true;
+      startBtnText.textContent = 'Pause Focus';
+      startBtn.classList.replace('btn-primary', 'btn-danger');
+
+      timerInterval = setInterval(() => {
+        if (secondsLeft > 0) {
+          secondsLeft--;
+          if (currentMode === 'focus') {
+            totalFocusSeconds++;
+            statFocusTime.textContent = `${Math.floor(totalFocusSeconds / 60)}m`;
+          }
+          updateDisplay();
+          spawnGrowthParticles();
+        } else {
+          completeTimer();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      startBtnText.textContent = 'Resume';
+      startBtn.classList.replace('btn-danger', 'btn-primary');
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      secondsLeft = totalSeconds;
+      growthProgress = 0;
+      visualGrowth = 0;
+      startBtnText.textContent = 'Start Focus';
+      updateDisplay();
+    }
+
+    function completeTimer() {
+      pauseTimer();
+      if (currentMode === 'focus') {
+        totalBlooms++;
+        statBlooms.textContent = totalBlooms;
+        showToast('Session complete! Your garden flourish has been saved.');
+      } else {
+        showToast('Break finished! Ready to focus again?');
+      }
+      burstCompletionParticles();
+    }
+
+    function setDuration(mins) {
+      durationMinutes = mins;
+      totalSeconds = mins * 60;
+      secondsLeft = totalSeconds;
+      
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === `${mins}m`);
+      });
+
+      resetTimer();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (mode === 'focus') {
+        setDuration(25);
+      } else if (mode === 'shortBreak') {
+        setDuration(5);
+      } else if (mode === 'longBreak') {
+        setDuration(15);
+      }
+    }
+
+    function selectSpecies(species) {
+      currentSpecies = species;
+      document.querySelectorAll('.species-card').forEach(c => c.classList.remove('active'));
+      document.getElementById(`spec-${species}`).classList.add('active');
+      plantNameText.textContent = speciesData[species].name;
+      updateDisplay();
+    }
+
+    function showToast(msg) {
+      toastMsg.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // --- Procedural Plant Rendering ---
+    function spawnGrowthParticles() {
+      if (Math.random() > 0.3) return;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height - 120;
+      particles.push({
+        x: centerX + (Math.random() - 0.5) * 120 * visualGrowth,
+        y: centerY - (visualGrowth * 200) - Math.random() * 20,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -Math.random() * 1.5 - 0.5,
+        radius: Math.random() * 3 + 1,
+        alpha: 1,
+        color: speciesData[currentSpecies].accentColor
+      });
+    }
+
+    function burstCompletionParticles() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height - 250;
+      for (let i = 0; i < 80; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 4 + 2,
+          alpha: 1,
+          color: speciesData[currentSpecies].accentColor
+        });
+      }
+    }
+
+    // Leaf drawing helper for clear early-stage greenery
+    function drawLeaf(x, y, size, angle, color) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(size * 0.5, -size * 0.5, size, 0);
+      ctx.quadraticCurveTo(size * 0.5, size * 0.5, 0, 0);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Recursive Botanical Branch Rendering
+    function drawBranch(x, y, length, angle, width, depth, maxDepth) {
+      if (depth > maxDepth) return;
+
+      const x2 = x + Math.cos(angle) * length;
+      const y2 = y + Math.sin(angle) * length;
+
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x2, y2);
+      ctx.lineWidth = Math.max(1.5, width);
+      ctx.strokeStyle = depth === 0 ? '#334155' : speciesData[currentSpecies].secondaryColor;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Early-stage leaves along the stem
+      if (depth <= 1 && visualGrowth > 0.05) {
+        const leafSize = Math.max(4, 12 * visualGrowth);
+        drawLeaf(x2, y2, leafSize, angle - 0.7, speciesData[currentSpecies].primaryColor);
+        drawLeaf(x2, y2, leafSize, angle + 0.7, speciesData[currentSpecies].primaryColor);
+      }
+
+      // Draw leaves/blooms at terminal nodes
+      if (depth === maxDepth || (depth > 0 && Math.random() > 0.5)) {
+        const bloomSize = (8 + depth * 3) * visualGrowth;
+        ctx.beginPath();
+        ctx.arc(x2, y2, Math.max(2, bloomSize), 0, Math.PI * 2);
+        ctx.fillStyle = speciesData[currentSpecies].primaryColor;
+        ctx.fill();
+
+        // Accent core as plant matures
+        if (visualGrowth > 0.5) {
+          ctx.beginPath();
+          ctx.arc(x2, y2, bloomSize * 0.45, 0, Math.PI * 2);
+          ctx.fillStyle = speciesData[currentSpecies].accentColor;
+          ctx.fill();
+        }
+      }
+
+      const branchCount = 2;
+      const spread = currentSpecies === 'fern' ? 0.5 : 0.6;
+
+      for (let i = 0; i < branchCount; i++) {
+        const nextLength = length * (0.68 + Math.random() * 0.1);
+        const nextAngle = angle + (i === 0 ? -spread : spread) + (Math.sin(Date.now() * 0.002 + depth) * 0.05);
+        drawBranch(x2, y2, nextLength, nextAngle, width * 0.7, depth + 1, maxDepth);
+      }
+    }
+
+    function renderCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const centerX = canvas.width / 2;
+      const baseY = canvas.height - 90;
+
+      // Draw Terrarium Soil Base
+      ctx.beginPath();
+      ctx.ellipse(centerX, baseY + 15, 140, 25, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.stroke();
+
+      // Soil Pot / Base Container
+      ctx.beginPath();
+      ctx.moveTo(centerX - 100, baseY);
+      ctx.quadraticCurveTo(centerX, baseY + 50, centerX + 100, baseY);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = varColor('--glass-border');
+      ctx.stroke();
+
+      // Render Initial Sprout or Stem structure based on visual growth
+      if (visualGrowth > 0.001) {
+        // Minimum visible sprout parameters so growth is immediate
+        const minStemLength = 22;
+        const initialLength = minStemLength + visualGrowth * 55;
+        const maxTreeDepth = Math.min(5, Math.floor(visualGrowth * 5) + 1);
+        const stemWidth = Math.max(3, 8 * visualGrowth);
+
+        drawBranch(centerX, baseY, initialLength, -Math.PI / 2, stemWidth, 0, maxTreeDepth);
+      } else {
+        // Dormant Seed / Sprout Tip
+        ctx.beginPath();
+        ctx.arc(centerX, baseY - 4, 5, 0, Math.PI * 2);
+        ctx.fillStyle = speciesData[currentSpecies].primaryColor;
+        ctx.fill();
+      }
+
+      // Render Floating Glow Particles
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.008;
+
+        if (p.alpha <= 0) {
+          particles.splice(idx, 1);
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = p.alpha;
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        }
+      });
+
+      requestAnimationFrame(renderCanvas);
+    }
+
+    function varColor(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    // Initialize
+    updateDisplay();
+    requestAnimationFrame(renderCanvas);
+  </script>
+</body>
+</html>

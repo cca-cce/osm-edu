@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Turn English text into a lemmatised, stop-word-free word cloud in your browser.">
+  <title>Word Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232134a6'/%3E%3Cpath d='M13 20h38M18 32h28M24 44h16' stroke='%23fff' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #111a3a;
+      --muted: #63708e;
+      --line: #d9deeb;
+      --surface: #ffffff;
+      --canvas: #f5f7ff;
+      --page: #edf0f8;
+      --accent: #2947d1;
+      --accent-dark: #1d339c;
+      --focus: #6d83ef;
+      --danger: #a43a55;
+      --shadow: 0 18px 55px rgba(30, 43, 91, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: var(--page);
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(72, 102, 226, 0.10), transparent 28rem),
+        var(--page);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    button,
+    textarea {
+      font: inherit;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 42px 0 48px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .masthead-note {
+      max-width: 31rem;
+      margin: 0;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(270px, 0.82fr) minmax(390px, 1.45fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid rgba(194, 202, 224, 0.85);
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .input-panel {
+      display: flex;
+      flex-direction: column;
+      padding: 22px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 410px;
+      flex: 1;
+      resize: vertical;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      outline: none;
+      color: var(--ink);
+      background: #fafbff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 1rem;
+      line-height: 1.65;
+      transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    }
+
+    textarea:hover {
+      border-color: #b7c0db;
+      background: #ffffff;
+    }
+
+    textarea:focus-visible {
+      border-color: var(--focus);
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(83, 109, 226, 0.16);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .privacy-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    button {
+      min-width: 118px;
+      min-height: 46px;
+      padding: 11px 20px;
+      border: 0;
+      border-radius: 12px;
+      color: #ffffff;
+      background: var(--accent);
+      font-weight: 760;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(41, 71, 209, 0.24);
+      transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      background: var(--accent-dark);
+      box-shadow: 0 10px 24px rgba(41, 71, 209, 0.30);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(83, 109, 226, 0.35);
+      outline-offset: 3px;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.58;
+      box-shadow: none;
+    }
+
+    .cloud-panel {
+      display: flex;
+      min-height: 520px;
+      flex-direction: column;
+      padding: 14px;
+    }
+
+    .cloud-canvas {
+      position: relative;
+      min-height: 470px;
+      flex: 1;
+      overflow: hidden;
+      border: 1px solid #e0e4f2;
+      border-radius: 14px;
+      background:
+        linear-gradient(rgba(56, 77, 167, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 77, 167, 0.035) 1px, transparent 1px),
+        var(--canvas);
+      background-size: 24px 24px;
+    }
+
+    .cloud-canvas svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .cloud-word {
+      cursor: help;
+      transition: opacity 120ms ease, filter 120ms ease;
+    }
+
+    .cloud-word:hover,
+    .cloud-word:focus {
+      opacity: 0.78;
+      filter: saturate(1.25);
+      outline: none;
+    }
+
+    .message {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .message strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 1.05rem;
+    }
+
+    .message.error strong {
+      color: var(--danger);
+    }
+
+    .stats {
+      min-height: 34px;
+      margin: 0;
+      padding: 12px 4px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .stats b {
+      color: var(--ink);
+      font-weight: 760;
+    }
+
+    @media (max-width: 699px) {
+      main {
+        width: min(100% - 24px, 620px);
+        padding-top: 26px;
+      }
+
+      .masthead {
+        display: block;
+      }
+
+      .masthead-note {
+        margin-top: 12px;
+        text-align: left;
+      }
+
+      .workspace {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      textarea {
+        min-height: 290px;
+      }
+
+      .cloud-panel {
+        min-height: 410px;
+      }
+
+      .cloud-canvas {
+        min-height: 350px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .input-panel {
+        padding: 16px;
+      }
+
+      .cloud-panel {
+        padding: 9px;
+      }
+
+      .actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">In-browser NLP</p>
+        <h1>Word Cloud</h1>
+      </div>
+      <p class="masthead-note">Find the ideas that carry your text. Inflected words are grouped by their dictionary form.</p>
+    </header>
+
+    <div class="workspace">
+      <form class="panel input-panel" id="text-form">
+        <label for="source-text">English text</label>
+        <textarea id="source-text" spellcheck="true">Runners run every morning. One runner ran through the park while another was running beside the river. Running regularly builds strength, and strong routines help runners keep moving.</textarea>
+        <div class="actions">
+          <p class="privacy-note">Processed only in this browser.</p>
+          <button id="submit-button" type="submit" disabled>Loading…</button>
+        </div>
+      </form>
+
+      <section class="panel cloud-panel" aria-labelledby="cloud-status">
+        <div class="cloud-canvas" id="cloud" aria-live="polite" aria-busy="true">
+          <div class="message" id="message">
+            <div><strong>Loading language tools</strong>This usually takes a moment.</div>
+          </div>
+        </div>
+        <p class="stats" id="cloud-status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    const form = document.querySelector("#text-form");
+    const textArea = document.querySelector("#source-text");
+    const submitButton = document.querySelector("#submit-button");
+    const cloudElement = document.querySelector("#cloud");
+    const messageElement = document.querySelector("#message");
+    const statsElement = document.querySelector("#cloud-status");
+
+    let d3;
+    let cloudLayout;
+    let nlp;
+    let its;
+    let activeLayout = null;
+    let renderSequence = 0;
+    let lastResult = null;
+    let resizeFrame = null;
+
+    function showMessage(title, detail, kind = "") {
+      renderSequence += 1;
+      activeLayout?.stop();
+      activeLayout = null;
+      cloudElement.replaceChildren(messageElement);
+      messageElement.className = `message ${kind}`.trim();
+      messageElement.innerHTML = "";
+      const wrapper = document.createElement("div");
+      const heading = document.createElement("strong");
+      heading.textContent = title;
+      wrapper.append(heading, document.createTextNode(detail));
+      messageElement.append(wrapper);
+      cloudElement.setAttribute("aria-busy", "false");
+    }
+
+    function cleanText(text) {
+      return text
+        .toLowerCase()
+        .replace(/\b(?:https?:\/\/|www\.)\S+/gi, " ")
+        .replace(/\d+(?:[.,]\d+)*/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function analyse(text) {
+      const cleaned = cleanText(text);
+      if (!cleaned) return null;
+
+      const document = nlp.readDoc(cleaned);
+      const tokens = document.tokens();
+      const lemmas = tokens.out(its.lemma);
+      const stopWords = tokens.out(its.stopWordFlag);
+      const counts = new Map();
+      let tokenCount = 0;
+
+      lemmas.forEach((rawLemma, index) => {
+        const lemma = String(rawLemma).toLowerCase();
+        if (stopWords[index] || !/^[a-z]{3,}$/.test(lemma)) return;
+        tokenCount += 1;
+        counts.set(lemma, (counts.get(lemma) || 0) + 1);
+      });
+
+      const words = [...counts]
+        .map(([text, count]) => ({ text, count }))
+        .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text))
+        .slice(0, 100);
+
+      return { words, tokenCount, distinctCount: counts.size };
+    }
+
+    function seededRandom(seed = 92821) {
+      let state = seed >>> 0;
+      return () => {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+        return state / 4294967296;
+      };
+    }
+
+    function drawCloud(result) {
+      lastResult = result;
+      renderSequence += 1;
+      const currentSequence = renderSequence;
+      activeLayout?.stop();
+
+      const width = Math.max(280, Math.round(cloudElement.clientWidth));
+      const height = Math.max(330, Math.round(cloudElement.clientHeight));
+      const counts = result.words.map((word) => word.count);
+      const minCount = Math.min(...counts);
+      const maxCount = Math.max(...counts);
+      const maxSize = Math.min(72, Math.max(42, width / 7.5));
+      const fontSize = minCount === maxCount
+        ? () => Math.min(34, maxSize)
+        : d3.scaleSqrt().domain([minCount, maxCount]).range([14, maxSize]);
+
+      cloudElement.setAttribute("aria-busy", "true");
+      cloudElement.replaceChildren();
+      statsElement.textContent = "Arranging words…";
+
+      activeLayout = cloudLayout()
+        .size([width, height])
+        .words(result.words.map((word) => ({ ...word, size: fontSize(word.count) })))
+        .padding(3)
+        .rotate(() => 0)
+        .font("Arial")
+        .fontWeight((word) => word.count === maxCount ? 800 : 650)
+        .fontSize((word) => word.size)
+        .random(seededRandom())
+        .on("end", (placedWords) => {
+          if (currentSequence !== renderSequence) return;
+
+          const palette = ["#203aaf", "#9a2b64", "#08747c", "#51309c", "#bf4b25", "#1f5f9c"];
+          const color = d3.scaleOrdinal(palette);
+          const svg = d3.create("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("role", "img")
+            .attr("aria-label", `Word cloud of ${result.distinctCount} distinct lemmas`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+
+          const words = svg.append("g")
+            .attr("transform", `translate(${width / 2},${height / 2})`)
+            .selectAll("text")
+            .data(placedWords)
+            .join("text")
+            .attr("class", "cloud-word")
+            .attr("text-anchor", "middle")
+            .attr("font-family", "Arial, sans-serif")
+            .attr("font-size", (word) => `${word.size}px`)
+            .attr("font-weight", (word) => word.weight)
+            .attr("fill", (_, index) => color(index))
+            .attr("transform", (word) => `translate(${word.x},${word.y})`)
+            .attr("tabindex", 0)
+            .attr("role", "img")
+            .attr("aria-label", (word) => `${word.text}: ${word.count}`)
+            .text((word) => word.text);
+
+          words.append("title").text((word) => `${word.text}: ${word.count}`);
+          cloudElement.replaceChildren(svg.node());
+          cloudElement.setAttribute("aria-busy", "false");
+          statsElement.innerHTML = `<b>${result.tokenCount.toLocaleString()}</b> tokens · <b>${result.distinctCount.toLocaleString()}</b> distinct lemmas`;
+          activeLayout = null;
+        });
+
+      activeLayout.start();
+    }
+
+    function processText() {
+      const source = textArea.value;
+      if (!source.trim()) {
+        lastResult = null;
+        statsElement.textContent = "No text analysed";
+        showMessage("Nothing to analyse", "Paste some English text, then select Submit.");
+        return;
+      }
+
+      const result = analyse(source);
+      if (!result || result.words.length === 0) {
+        lastResult = null;
+        statsElement.textContent = result
+          ? `${result.tokenCount.toLocaleString()} tokens · 0 distinct lemmas`
+          : "No text analysed";
+        showMessage("No eligible words", "Try text with words of at least three letters.");
+        return;
+      }
+
+      drawCloud(result);
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      processText();
+    });
+
+    new ResizeObserver(() => {
+      if (!lastResult || !d3 || !cloudLayout) return;
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => drawCloud(lastResult));
+    }).observe(cloudElement);
+
+    try {
+      const [winkModule, modelModule, d3Module, cloudModule] = await Promise.all([
+        import("https://cdn.jsdelivr.net/npm/wink-nlp@2/+esm"),
+        import("https://cdn.jsdelivr.net/npm/wink-eng-lite-web-model@1/+esm"),
+        import("https://cdn.jsdelivr.net/npm/d3@7/+esm"),
+        import("https://cdn.jsdelivr.net/npm/d3-cloud@1/+esm"),
+      ]);
+
+      const winkNLP = winkModule.default;
+      nlp = winkNLP(modelModule.default);
+      its = nlp.its;
+      d3 = d3Module;
+      cloudLayout = cloudModule.default;
+      submitButton.disabled = false;
+      submitButton.textContent = "Submit";
+      processText();
+    } catch (error) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Unavailable";
+      statsElement.textContent = "Language tools could not be loaded";
+      showMessage(
+        "Could not load the libraries",
+        "Check your internet connection, then reload this page.",
+        "error"
+      );
+    }
+  </script>
+</body>
+</html>

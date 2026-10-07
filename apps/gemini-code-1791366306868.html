@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Word Cloud Generator</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --panel-bg: rgba(30, 41, 59, 0.7);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-hover: #0284c7;
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+
+    header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 6px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    /* Responsive 2-column layout above 700px */
+    @media (min-width: 700px) {
+      .main-container {
+        flex-direction: row;
+        align-items: stretch;
+      }
+
+      .input-section {
+        width: 380px;
+        flex-shrink: 0;
+      }
+
+      .output-section {
+        flex: 1;
+      }
+    }
+
+    .card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+    }
+
+    .input-section label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+      display: block;
+    }
+
+    textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 220px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      padding: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      resize: vertical;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent-blue);
+    }
+
+    button {
+      background: var(--accent-blue);
+      color: #0f172a;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .output-section {
+      min-height: 400px;
+      position: relative;
+    }
+
+    #cloud-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 350px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #cloud-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .message {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .stats-line {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Custom Tooltip */
+    #tooltip {
+      position: absolute;
+      padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent-blue);
+      color: var(--text-primary);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      white-space: nowrap;
+    }
+
+    /* Word styling */
+    .cloud-word {
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .cloud-word:hover {
+      opacity: 0.75;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(15, 23, 42, 0.3);
+      border-radius: 50%;
+      border-top-color: #0f172a;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Word Cloud Generator</h1>
+    <p class="subtitle">Client-side English NLP Tokenization & Lemmatization</p>
+  </header>
+
+  <div class="main-container">
+    <!-- Left / Top Input Column -->
+    <div class="card input-section">
+      <label for="text-input">Enter or paste English text:</label>
+      <textarea id="text-input" spellcheck="false">The quick brown fox jumps over the lazy dog. The fox ran quickly, running through the woods as fast as it was able to run. Several foxes were running together, while another fox sat watching the runners run past.</textarea>
+      <button id="submit-btn">
+        <span id="btn-text">Generate Word Cloud</span>
+        <div id="btn-spinner" class="spinner"></div>
+      </button>
+    </div>
+
+    <!-- Right / Bottom Output Column -->
+    <div class="card output-section">
+      <div id="cloud-wrapper">
+        <div id="message-container" class="message">Click "Generate Word Cloud" to visualize text.</div>
+      </div>
+      <div id="stats-line" class="stats-line" style="display: none;"></div>
+      <div id="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- Load ES Modules from jsDelivr CDN -->
+  <script type="module">
+    import winkNLP from 'https://cdn.jsdelivr.net/npm/wink-nlp@2/+esm';
+    import model from 'https://cdn.jsdelivr.net/npm/wink-eng-lite-web-model@1/+esm';
+    import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+    import d3Cloud from 'https://cdn.jsdelivr.net/npm/d3-cloud@1/+esm';
+
+    // Initialize Wink NLP with English model
+    const nlp = winkNLP(model);
+    const its = nlp.its;
+
+    const textarea = document.getElementById('text-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+    const cloudWrapper = document.getElementById('cloud-wrapper');
+    const statsLine = document.getElementById('stats-line');
+    const tooltip = document.getElementById('tooltip');
+
+    // Color scale for word cloud
+    const colorScale = d3.scaleOrdinal([
+      '#38bdf8', '#818cf8', '#a78bfa', '#f472b6', 
+      '#34d399', '#fbbf24', '#f87171', '#60a5fa'
+    ]);
+
+    submitBtn.addEventListener('click', processAndGenerate);
+
+    // Initial run with sample text once loaded
+    processAndGenerate();
+
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      btnSpinner.style.display = isLoading ? 'block' : 'none';
+      btnText.textContent = isLoading ? 'Processing...' : 'Generate Word Cloud';
+    }
+
+    async function processAndGenerate() {
+      setLoading(true);
+
+      // Allow UI to update
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      try {
+        const rawText = textarea.value.trim();
+
+        if (!rawText) {
+          showEmptyMessage("Please enter or paste some text to generate a word cloud.");
+          setLoading(false);
+          return;
+        }
+
+        // Step 2 & 3: Clean & Read with Wink NLP
+        // Remove web addresses (URLs)
+        const cleanedText = rawText
+          .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
+          .replace(/\s+/g, ' ');
+
+        const doc = nlp.readDoc(cleanedText);
+
+        let totalTokensCount = 0;
+        const lemmaFreqMap = new Map();
+
+        // Step 4 & 5: Tokenize, Lemmatize & Filter
+        doc.tokens().each((t) => {
+          totalTokensCount++;
+          
+          const isStop = t.out(its.stopWordFlag);
+          const value = t.out(its.value);
+          const lemma = t.out(its.lemma).toLowerCase();
+
+          // Keep words: >= 3 letters, alphabetic (a-z), not stop words, not punctuation
+          if (!isStop && /^[a-z]{3,}$/i.test(lemma)) {
+            lemmaFreqMap.set(lemma, (lemmaFreqMap.get(lemma) || 0) + 1);
+          }
+        });
+
+        const distinctLemmasCount = lemmaFreqMap.size;
+
+        if (distinctLemmasCount === 0) {
+          showEmptyMessage("No valid words found to display (must be 3+ letters and not stop words).");
+          setLoading(false);
+          return;
+        }
+
+        // Step 6: Get top 100 most frequent lemmas
+        const wordsArray = Array.from(lemmaFreqMap.entries())
+          .map(([text, count]) => ({ text, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 100);
+
+        renderWordCloud(wordsArray, totalTokensCount, distinctLemmasCount);
+
+      } catch (err) {
+        console.error(err);
+        showEmptyMessage("An error occurred while processing text.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function showEmptyMessage(msg) {
+      cloudWrapper.innerHTML = `<div class="message">${msg}</div>`;
+      statsLine.style.display = 'none';
+    }
+
+    function renderWordCloud(words, totalTokens, distinctLemmas) {
+      cloudWrapper.innerHTML = '';
+      
+      const width = cloudWrapper.clientWidth || 600;
+      const height = cloudWrapper.clientHeight || 400;
+
+      const minCount = d3.min(words, d => d.count);
+      const maxCount = d3.max(words, d => d.count);
+
+      // Font scaling linear interpolation (min 14px, max 64px)
+      const fontSizeScale = d3.scaleLinear()
+        .domain([minCount, maxCount])
+        .range(minCount === maxCount ? [32, 32] : [14, 64]);
+
+      const layout = d3Cloud()
+        .size([width, height])
+        .words(words.map(d => ({ text: d.text, size: fontSizeScale(d.count), count: d.count })))
+        .padding(4)
+        .rotate(0) // All words horizontal as specified
+        .font('system-ui, sans-serif')
+        .fontSize(d => d.size)
+        .on('end', draw);
+
+      layout.start();
+
+      function draw(outputWords) {
+        const svg = d3.select(cloudWrapper)
+          .append('svg')
+          .attr('id', 'cloud-svg')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('viewBox', `0 0 ${width} ${height}`)
+          .append('g')
+          .attr('transform', `translate(${width / 2},${height / 2})`);
+
+        svg.selectAll('text')
+          .data(outputWords)
+          .enter()
+          .append('text')
+          .attr('class', 'cloud-word')
+          .style('font-size', d => `${d.size}px`)
+          .style('font-family', 'system-ui, sans-serif')
+          .style('font-weight', '700')
+          .style('fill', (d, i) => colorScale(i))
+          .attr('text-anchor', 'middle')
+          .attr('transform', d => `translate(${d.x},${d.y})`)
+          .text(d => d.text)
+          .on('mouseover', (event, d) => {
+            tooltip.style.opacity = 1;
+            tooltip.innerHTML = `<strong>${d.text}</strong>: ${d.count} occurrence${d.count > 1 ? 's' : ''}`;
+          })
+          .on('mousemove', (event) => {
+            const bounds = cloudWrapper.getBoundingClientRect();
+            const mouseX = event.clientX - bounds.left;
+            const mouseY = event.clientY - bounds.top;
+            
+            tooltip.style.left = `${mouseX + 12}px`;
+            tooltip.style.top = `${mouseY + 12}px`;
+          })
+          .on('mouseleave', () => {
+            tooltip.style.opacity = 0;
+          });
+
+        // Update stats summary line under the cloud
+        statsLine.style.display = 'block';
+        statsLine.textContent = `Total tokens analyzed: ${totalTokens.toLocaleString()} | Distinct lemmas kept: ${distinctLemmas.toLocaleString()}`;
+      }
+    }
+  </script>
+</body>
+</html>
